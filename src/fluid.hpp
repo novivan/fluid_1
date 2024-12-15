@@ -12,9 +12,10 @@ template<typename T, size_t N, size_t M>
 class FluidSimulator {
 public:
     FluidSimulator();
-    void initialize(const std::vector<std::vector<T>>& initial_conditions);
+    void initialize(const std::vector<std::vector<T> >& initial_conditions);
     void update();
     void render() const;
+    void simulate();
 
 private:
     std::array<std::array<T, M>, N> field;
@@ -28,12 +29,12 @@ private:
 };
 
 template<typename T, size_t N, size_t M>
-FluidSimulator<T, N, M>::FluidSimulator() : gravity(9.81), rnd(std::random_device{}()) {
+FluidSimulator<T, N, M>::FluidSimulator() : gravity(9.81), rnd(std::random_device()()) {
     // Инициализация поля и скорости
 }
 
 template<typename T, size_t N, size_t M>
-void FluidSimulator<T, N, M>::initialize(const std::vector<std::vector<T>>& initial_conditions) {
+void FluidSimulator<T, N, M>::initialize(const std::vector<std::vector<T> >& initial_conditions) {
     std::cout << "Размер initial_conditions: " << initial_conditions.size() << "x" << initial_conditions[0].size() << std::endl;
     std::cout << "Ожидаемый размер: " << N << "x" << M << std::endl;
     assert(initial_conditions.size() == N && initial_conditions[0].size() == M);
@@ -47,6 +48,11 @@ void FluidSimulator<T, N, M>::initialize(const std::vector<std::vector<T>>& init
 template<typename T, size_t N, size_t M>
 void FluidSimulator<T, N, M>::update() {
     // Логика обновления состояния жидкости
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            field[i][j] += 1;
+        }
+    }
 }
 
 template<typename T, size_t N, size_t M>
@@ -56,6 +62,15 @@ void FluidSimulator<T, N, M>::render() const {
             std::cout << cell << " ";
         }
         std::cout << std::endl;
+    }
+}
+
+
+template<typename T, size_t N, size_t M>
+void FluidSimulator<T, N, M>::simulate() {
+    for (int i = 0; i < 10; ++i) { // Пример 10 итераций
+        update();
+        render();
     }
 }
 

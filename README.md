@@ -12,3 +12,13 @@
 - `src/utils/file_reader.hpp`: Объявления функций для работы с файлами.
 - `input/input.txt`: Входные данные для симуляции.
 - `CMakeLists.txt`: Конфигурационный файл для сборки проекта.
+
+## Пример запуска
+```
+mkdir build
+cd build
+cmake .. -DTYPES="FLOAT,DOUBLE" -DSIZES="S(1920,1080),S(10,10),S(42,1337)"
+make
+./fluid_simulation ../input/input.txt --p-type=FLOAT --v-type=DOUBLE --v-flow-type="FAST_FIXED(13,7)"
+```
+кстати, при такой последовательности команд код не должен запускаться(у cmake нет в аргументах типа FAST_FIXED)

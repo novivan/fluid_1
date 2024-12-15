@@ -19,7 +19,7 @@ struct FluidData {
 };
 
 template<size_t N, size_t M>
-void readInputData(const std::string& filename, std::vector<std::vector<float>>& initial_data, float& g, std::vector<float>& rho) {
+void readInputData(const std::string& filename, std::vector<std::vector<float> >& initial_data, float& g, std::vector<float>& rho) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Не удалось открыть файл: " + filename);
