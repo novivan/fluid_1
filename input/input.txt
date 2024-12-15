@@ -1,0 +1,7 @@
+g = 9.81
+rho = 1000
+initial_positions = [
+    (5, 5, 'water'),
+    (10, 10, 'oil'),
+    (15, 15, 'mercury')
+]
