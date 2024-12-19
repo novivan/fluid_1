@@ -1,8 +1,10 @@
 #include "Simulator.h"
 
-template<typename P, typename V, typename VFLOW, size_t S1, size_t S2>
-Simulator<P, V, VFLOW, S1, S2>::Simulator() : UT(0) {
-    std::cout << "Initializing simulator..." << std::endl;
+#define SIMULATOR_TEMPLATE_PARAMS typename P, typename V, typename VFLOW, size_t S1, size_t S2
+#define SIMULATOR_TEMPLATE_ARGS P, V, VFLOW, S1, S2
+
+template<SIMULATOR_TEMPLATE_PARAMS>
+Simulator<SIMULATOR_TEMPLATE_ARGS>::Simulator() : UT(0) {
     // Инициализация rho и других полей при необходимости
     for (int i = 0; i < 256; ++i) {
         rho[i] = static_cast<P>(0);
@@ -16,11 +18,9 @@ Simulator<P, V, VFLOW, S1, S2>::Simulator() : UT(0) {
     }
 }
 
-template<typename P, typename V, typename VFLOW, size_t S1, size_t S2>
-void Simulator<P, V, VFLOW, S1, S2>::run(const std::string& source) {
-    std::cout << "Loading from file: " << source << std::endl;
+template<SIMULATOR_TEMPLATE_PARAMS>
+void Simulator<SIMULATOR_TEMPLATE_ARGS>::run(const std::string& source) {
     load_from_file(source);
-    std::cout << "Starting simulation..." << std::endl;
     // Основной цикл симуляции
     for (int step = 0; step < 100; ++step) { // Пример 100 итераций
         // Пример симуляции: простое обновление значений
@@ -30,18 +30,16 @@ void Simulator<P, V, VFLOW, S1, S2>::run(const std::string& source) {
             }
         }
         // Вывод текущего состояния системы
-        std::cout << "Step " << step << ":\n";
         for (size_t i = 0; i < S1; ++i) {
             for (size_t j = 0; j < S2; ++j) {
-                std::cout << p[i][j] << " ";
+                // ...existing code...
             }
-            std::cout << "\n";
         }
     }
 }
 
-template<typename P, typename V, typename VFLOW, size_t S1, size_t S2>
-void Simulator<P, V, VFLOW, S1, S2>::load_from_file(const std::string& filename) {
+template<SIMULATOR_TEMPLATE_PARAMS>
+void Simulator<SIMULATOR_TEMPLATE_ARGS>::load_from_file(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Не удалось открыть файл");
@@ -50,7 +48,6 @@ void Simulator<P, V, VFLOW, S1, S2>::load_from_file(const std::string& filename)
     file >> width >> height;
     P g;
     file >> g;
-    std::cout << "Width: " << width << ", Height: " << height << ", g: " << g << std::endl;
     for (int i = 0; i < 256; ++i) {
         if (!(file >> rho[i])) {
             throw std::runtime_error("Ошибка чтения rho из файла");
@@ -65,10 +62,12 @@ void Simulator<P, V, VFLOW, S1, S2>::load_from_file(const std::string& filename)
         }
         p[x][y] = value;
     }
-    std::cout << "Finished loading from file." << std::endl;
 }
 
-// Явная инстанциация шаблонов (можно добавить необходимые комбинации типов и размеров)
-template class Simulator<FIXED_32_16, FLOAT, FLOAT, 1920, 1080>;
-template class Simulator<FIXED_16_8, DOUBLE, DOUBLE, 10, 10>;
-template class Simulator<DOUBLE, FIXED_32_16, FAST_FIXED<33, 20>, 1920, 1080>;
+// Явная инстанциация шаблонов (заменяем алиасы на шаблонные параметры)
+template class Simulator<FIXED<32, 16>, FLOAT, FLOAT, 1920, 1080>;
+template class Simulator<FIXED<16, 8>, DOUBLE, DOUBLE, 10, 10>;
+template class Simulator<DOUBLE, FIXED<32, 16>, FAST_FIXED<33, 20>, 1920, 1080>;
+
+// Явная инстанциация шаблона для используемых типов и размеров
+// template class Simulator<DOUBLE, FIXED<32, 16>, FAST_FIXED<33, 20>, 1920, 1080>;

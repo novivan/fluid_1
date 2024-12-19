@@ -33,7 +33,7 @@
 
 Для запуска симуляции используйте следующую команду:
 ```sh
-./fluid_simulation --source="../input.txt" --p-type="DOUBLE" --v-type="FIXED(32,16)" --v-flow-type="FAST_FIXED(33,20)"
+./fluid_simulation --source="../input.txt" --p-type="DOUBLE" --v-type="FIXED<32,16>" --v-flow-type="FAST_FIXED<33,20>"
 ```
 
 ## Формат входного файла

@@ -29,7 +29,6 @@ private:
 
 template<typename P, typename V, typename VFLOW, size_t S1, size_t S2>
 std::tuple<P, bool, std::pair<int, int>> Simulator<P, V, VFLOW, S1, S2>::propagate_flow(int x, int y, P lim) {
-    std::cout << "Propagating flow at (" << x << ", " << y << ") with limit " << lim << std::endl;
     // ...existing code...
     return std::make_tuple(static_cast<P>(0), false, std::make_pair(0, 0));
 }
