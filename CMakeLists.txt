@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
-project(fluid_simulation)
+project(modernized_fluid)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-include_directories(include)
+include_directories(${CMAKE_SOURCE_DIR}/headers)
 
+set(SIZES "S(36,84),S(10,10),S(1,1)")
+set(TYPES "FIXED(32,16),FAST_FIXED(32,16),DOUBLE,FLOAT,FIXED(8,5),FAST_FIXED(5,2)")
 
-# Добавление исполняемого файла и связывание с библиотекой
-add_executable(fluid_simulation
-    src/main.cpp
-    src/Simulator.cpp
-)
+add_executable(modernized_fluid modernized.cpp)
+target_compile_definitions(modernized_fluid PUBLIC -DSIZES=${SIZES} -DTYPES=${TYPES})
 
-# Удаляем связывание с несуществующей библиотекой
-# target_link_libraries(fluid_simulation PRIVATE explicit_templates)
+add_executable(initial fluid.cpp)
