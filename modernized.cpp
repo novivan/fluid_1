@@ -10,30 +10,17 @@
 #include <string_view>
 #include <optional>
 #include <variant>
+#include <fstream>
+#include <sstream>
 
 #include "headers/fixed.hpp"
 #include "headers/fast_fixed.hpp"
 #include "headers/operators.hpp"
 
-#include <fstream>
-#include <sstream>
-
 using namespace std;
 
-constexpr size_t DEFAULT_N = 36, DEFAULT_M = 84;
 
-string loadFieldFromFile(const string& filepath) {  
-    ifstream file(filepath);
-    if (!file.is_open()) {
-        throw runtime_error("Failed to open file: " + filepath);
-    }
-    
-    string content, line;
-    while (getline(file, line)) {
-        content += line + '\n';
-    }
-    return content;
-}
+constexpr size_t DEFAULT_N = 36, DEFAULT_M = 84;
 
 #ifndef TYPES
 #define TYPES FLOAT,FIXED(31,17),FAST_FIXED(25, 11),FIXED(32, 16),DOUBLE,FAST_FIXED(32, 16)
@@ -43,58 +30,28 @@ string loadFieldFromFile(const string& filepath) {
 #define SIZES S(36,84), S(100,100)
 #endif
 
+
+struct GridDimension;
+template<typename... Types> struct DataTypeCollection;
+template<typename AllowedTypes, typename SelectedTypes> struct SimulationTypeResolver;
+template<typename... Types> bool try_all_type_combinations(const string&, const string&, const string&, const GridDimension&, const string&);
+template<typename P, typename V, typename VF> void executeSimulation(size_t, size_t, const string&);
+template<typename T> std::string getTypeDescription();
+pair<size_t, size_t> extractFixedPointParameters(const string&);
+template<typename T> static bool matchesTypeSpecification(const string&);
+GridDimension calculateFieldDimensions(const string&);
+string loadFieldFromFile(const string&);
+bool validateDataType(const string&);
+string getCommandLineArgument(string_view, int, char**, string_view);
+bool initializeAndRunSimulation(const string&, const string&, const string&, const GridDimension&, const string&);
+GridDimension parse_size(const string&);
+template<typename List> bool matches_size(const GridDimension&);
+
+
 struct GridDimension {
     size_t n, m;
-    constexpr GridDimension(size_t n_, size_t m_) : n(n_), m(m_) {}
-    constexpr GridDimension() : n(0), m(0) {}
+    constexpr GridDimension(size_t n_ = 0, size_t m_ = 0) : n(n_), m(m_) {}
 };
-
-GridDimension parse_size(const string& size_str) {
-    if (!size_str.starts_with("S(")) {
-        throw std::runtime_error("Size must start with S(");
-    }
-    
-    size_t start = 2;
-    size_t comma = size_str.find(',', start);
-    if (comma == string::npos) {
-        throw std::runtime_error("Invalid size format: missing comma");
-    }
-    
-    size_t end = size_str.find(')', comma);
-    if (end == string::npos) {
-        throw std::runtime_error("Invalid size format: missing )");
-    }
-    
-    size_t n = stoul(size_str.substr(start, comma - start));
-    size_t m = stoul(size_str.substr(comma + 1, end - comma - 1));
-    
-    return GridDimension(n, m);
-}
-
-template<GridDimension... Dims>
-struct GridDimensionSet {
-    static constexpr size_t size = sizeof...(Dims);
-    template<size_t I>
-    static constexpr GridDimension get() {
-        constexpr GridDimension arr[] = {Dims...};
-        return arr[I];
-    }
-};
-
-template<typename List, size_t I = 0>
-constexpr bool matches_size_impl(const GridDimension& size) {
-    if constexpr (I >= List::size) {
-        return false;
-    } else {
-        return (List::template get<I>().n == size.n && List::template get<I>().m == size.m) ||
-               matches_size_impl<List, I + 1>(size);
-    }
-}
-
-template<typename List>
-bool matches_size(const GridDimension& size) {
-    return matches_size_impl<List>(size);
-}
 
 template<typename NumericType, size_t N, size_t M>
 struct DirectionalField {
@@ -111,6 +68,7 @@ struct DirectionalField {
         return v[x][y][i];
     }
 };
+
 
 template<
     typename PressureType,
@@ -148,36 +106,6 @@ struct FluidSystemState {
         }
     }
 };
-
-template<typename T>
-struct NumberTypeProperties {
-    static T from_raw(int32_t x) { return T(x) / T(1 << 16); }
-};
-
-template<size_t N, size_t K>
-struct NumberTypeProperties<Fixed<N,K>> {
-    static Fixed<N,K> from_raw(typename Fixed<N,K>::StorageType x) {
-        return Fixed<N,K>::from_raw(x);
-    }
-};
-
-template<typename T>
-struct is_fixed : std::false_type {};
-
-template<size_t N, size_t K>
-struct is_fixed<Fixed<N,K>> : std::true_type {};
-
-template<typename T>
-inline constexpr bool is_fixed_v = is_fixed<T>::value;
-
-template<typename T>
-struct is_fast_fixed : std::false_type {};
-
-template<size_t N, size_t K>
-struct is_fast_fixed<FastFixed<N,K>> : std::true_type {};
-
-template<typename T>
-inline constexpr bool is_fast_fixed_v = is_fast_fixed<T>::value;
 
 template<typename PressureType, typename VelocityType, typename VFlowType, size_t N = DEFAULT_N, size_t M = DEFAULT_M>
 class FluidSimulator {
@@ -486,6 +414,36 @@ public:
     }
 };
 
+template<typename T>
+struct NumberTypeProperties {
+    static T from_raw(int32_t x) { return T(x) / T(1 << 16); }
+};
+
+template<size_t N, size_t K>
+struct NumberTypeProperties<Fixed<N,K>> {
+    static Fixed<N,K> from_raw(typename Fixed<N,K>::DataStorage x) {
+        return Fixed<N,K>::from_raw(x);
+    }
+};
+
+template<typename T>
+struct is_fixed : std::false_type {};
+
+template<size_t N, size_t K>
+struct is_fixed<Fixed<N,K>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_fixed_v = is_fixed<T>::value;
+
+template<typename T>
+struct is_fast_fixed : std::false_type {};
+
+template<size_t N, size_t K>
+struct is_fast_fixed<FastFixed<N,K>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_fast_fixed_v = is_fast_fixed<T>::value;
+
 template<typename P, typename V, typename VF>
 void executeSimulation(size_t rows, size_t cols, const string& fieldContent) {  
     FluidSystemState<P, V, VF, DEFAULT_N, DEFAULT_M> state(fieldContent);
@@ -617,6 +575,69 @@ bool try_all_type_combinations(const string& p_type, const string& v_type, const
     return SimulationTypeResolver<DataTypeCollection<Types...>, DataTypeCollection<>>::try_combinations(p_type, v_type, v_flow_type, size, field_content);
 }
 
+string loadFieldFromFile(const string& filepath) {  
+    ifstream file(filepath);
+    if (!file.is_open()) {
+        throw runtime_error("Failed to open file: " + filepath);
+    }
+    
+    string content, line;
+    while (getline(file, line)) {
+        content += line + '\n';
+    }
+    return content;
+}
+
+bool validateDataType(const string& typeName) { 
+    if (typeName == "FLOAT" || typeName == "DOUBLE") return true;
+    
+    if (typeName.starts_with("FIXED(") || typeName.starts_with("FAST_FIXED(")) {
+        size_t pos = typeName.find(',');
+        if (pos == string::npos) return false;
+        
+        size_t end_pos = typeName.find(')', pos);
+        if (end_pos == string::npos) return false;
+        
+        return true;
+    }
+    
+    return false;
+}
+
+string getCommandLineArgument(string_view argName, int argc, char** argv, string_view defaultValue) { 
+    for (int i = 1; i < argc - 1; ++i) {
+        if (argv[i] == argName) {
+            return argv[i + 1];
+        }
+    }
+    return string(defaultValue);
+}
+
+template<GridDimension... Dims>
+struct GridDimensionSet {
+    static constexpr size_t size = sizeof...(Dims);
+    template<size_t I>
+    static constexpr GridDimension get() {
+        constexpr GridDimension arr[] = {Dims...};
+        return arr[I];
+    }
+};
+
+template<typename List, size_t I = 0>
+constexpr bool matches_size_impl(const GridDimension& size) {
+    if constexpr (I >= List::size) {
+        return false;
+    } else {
+        return (List::template get<I>().n == size.n && List::template get<I>().m == size.m) ||
+               matches_size_impl<List, I + 1>(size);
+    }
+}
+
+template<typename List>
+bool matches_size(const GridDimension& size) {
+    return matches_size_impl<List>(size);
+}
+
 bool initializeAndRunSimulation(const string& pressureType, 
                               const string& velocityType, 
                               const string& flowType, 
@@ -649,31 +670,6 @@ bool initializeAndRunSimulation(const string& pressureType,
     }
 }
 
-string getCommandLineArgument(string_view argName, int argc, char** argv, string_view defaultValue) { 
-    for (int i = 1; i < argc - 1; ++i) {
-        if (argv[i] == argName) {
-            return argv[i + 1];
-        }
-    }
-    return string(defaultValue);
-}
-
-bool validateDataType(const string& typeName) { 
-    if (typeName == "FLOAT" || typeName == "DOUBLE") return true;
-    
-    if (typeName.starts_with("FIXED(") || typeName.starts_with("FAST_FIXED(")) {
-        size_t pos = typeName.find(',');
-        if (pos == string::npos) return false;
-        
-        size_t end_pos = typeName.find(')', pos);
-        if (end_pos == string::npos) return false;
-        
-        return true;
-    }
-    
-    return false;
-}
-
 GridDimension calculateFieldDimensions(const string& fieldContent) { 
     size_t n = 0, m = 0;
     stringstream ss(fieldContent);
@@ -696,6 +692,28 @@ GridDimension calculateFieldDimensions(const string& fieldContent) {
                           " exceeds maximum allowed size " + to_string(DEFAULT_N) + 
                           "x" + to_string(DEFAULT_M));
     }
+    
+    return GridDimension(n, m);
+}
+
+GridDimension parse_size(const string& size_str) {
+    if (!size_str.starts_with("S(")) {
+        throw std::runtime_error("Size must start with S(");
+    }
+    
+    size_t start = 2;
+    size_t comma = size_str.find(',', start);
+    if (comma == string::npos) {
+        throw std::runtime_error("Invalid size format: missing comma");
+    }
+    
+    size_t end = size_str.find(')', comma);
+    if (end == string::npos) {
+        throw std::runtime_error("Invalid size format: missing )");
+    }
+    
+    size_t n = stoul(size_str.substr(start, comma - start));
+    size_t m = stoul(size_str.substr(comma + 1, end - comma - 1));
     
     return GridDimension(n, m);
 }

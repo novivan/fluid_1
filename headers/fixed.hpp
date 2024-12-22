@@ -10,19 +10,19 @@ struct FastFixed;
 
 template<size_t N, size_t K>
 struct Fixed {
+    static constexpr size_t bits = N;
+    static constexpr size_t frac = K;
+
     static_assert(N > K, "N must be greater than K");
     static_assert(N <= 64, "N must be less than or equal to 64");
     
-    static constexpr size_t bits = N;
-    static constexpr size_t frac = K;
+    using DataStorage = typename std::conditional<N <= 32, int32_t, int64_t>::type;
     
-    using StorageType = typename std::conditional<N <= 32, int32_t, int64_t>::type;
-    
-    constexpr Fixed(int v = 0): v(static_cast<StorageType>(v) << K) {}
-    constexpr Fixed(float f): v(f * (StorageType(1) << K)) {}
-    constexpr Fixed(double f): v(f * (StorageType(1) << K)) {}
+    constexpr Fixed(int v = 0): v(static_cast<DataStorage>(v) << K) {}
+    constexpr Fixed(float f): v(f * (DataStorage(1) << K)) {}
+    constexpr Fixed(double f): v(f * (DataStorage(1) << K)) {}
 
-    static constexpr Fixed from_raw(StorageType x) {
+    static constexpr Fixed from_raw(DataStorage x) {
         Fixed ret;
         ret.v = x;
         return ret;
@@ -44,13 +44,13 @@ struct Fixed {
         return from_raw((static_cast<int64_t>(v) << K) / other.v);
     }
 
-    StorageType v;
+    DataStorage v;
 
     auto operator<=>(const Fixed&) const = default;
     bool operator==(const Fixed&) const = default;
 
-    explicit operator float() const { return v / float(StorageType(1) << K); }
-    explicit operator double() const { return v / double(StorageType(1) << K); }
+    explicit operator float() const { return v / float(DataStorage(1) << K); }
+    explicit operator double() const { return v / double(DataStorage(1) << K); }
 
     friend Fixed operator/(Fixed a, int b) {
         return Fixed::from_raw(a.v / b);
@@ -67,14 +67,14 @@ struct Fixed {
     template<size_t N2, size_t K2>
     explicit operator Fixed<N2,K2>() const {
         if constexpr (K2 >= K) {
-            return Fixed<N2,K2>::from_raw(static_cast<typename Fixed<N2,K2>::StorageType>(v) << (K2 - K));
+            return Fixed<N2,K2>::from_raw(static_cast<typename Fixed<N2,K2>::DataStorage>(v) << (K2 - K));
         } else {
             constexpr size_t shift = K - K2;
             if constexpr (shift >= N2) {
                 auto temp = v >> (shift - N2 + 1);
-                return Fixed<N2,K2>::from_raw(static_cast<typename Fixed<N2,K2>::StorageType>(temp) >> 1);
+                return Fixed<N2,K2>::from_raw(static_cast<typename Fixed<N2,K2>::DataStorage>(temp) >> 1);
             } else {
-                return Fixed<N2,K2>::from_raw(static_cast<typename Fixed<N2,K2>::StorageType>(v) >> shift);
+                return Fixed<N2,K2>::from_raw(static_cast<typename Fixed<N2,K2>::DataStorage>(v) >> shift);
             }
         }
     }
@@ -82,14 +82,14 @@ struct Fixed {
     template<size_t N2, size_t K2>
     explicit operator FastFixed<N2,K2>() const {
         if constexpr (K2 >= K) {
-            return FastFixed<N2,K2>::from_raw(static_cast<typename FastFixed<N2,K2>::StorageType>(v) << (K2 - K));
+            return FastFixed<N2,K2>::from_raw(static_cast<typename FastFixed<N2,K2>::DataStorage>(v) << (K2 - K));
         } else {
             constexpr size_t shift = K - K2;
             if constexpr (shift >= N2) {
                 auto temp = v >> (shift - N2 + 1);
-                return FastFixed<N2,K2>::from_raw(static_cast<typename FastFixed<N2,K2>::StorageType>(temp) >> 1);
+                return FastFixed<N2,K2>::from_raw(static_cast<typename FastFixed<N2,K2>::DataStorage>(temp) >> 1);
             } else {
-                return FastFixed<N2,K2>::from_raw(static_cast<typename FastFixed<N2,K2>::StorageType>(v) >> shift);
+                return FastFixed<N2,K2>::from_raw(static_cast<typename FastFixed<N2,K2>::DataStorage>(v) >> shift);
             }
         }
     }
@@ -107,7 +107,7 @@ Fixed<N,K> operator-(Fixed<N,K> a, Fixed<N,K> b) {
 
 template<size_t N, size_t K>
 Fixed<N,K> operator*(Fixed<N,K> a, Fixed<N,K> b) {
-    using ST = typename Fixed<N,K>::StorageType;
+    using ST = typename Fixed<N,K>::DataStorage;
     if constexpr (N <= 32) {
         return Fixed<N,K>::from_raw((static_cast<int64_t>(a.v) * b.v) >> K);
     } else {
@@ -119,7 +119,7 @@ Fixed<N,K> operator*(Fixed<N,K> a, Fixed<N,K> b) {
 
 template<size_t N, size_t K>
 Fixed<N,K> operator/(Fixed<N,K> a, Fixed<N,K> b) {
-    using ST = typename Fixed<N,K>::StorageType;
+    using ST = typename Fixed<N,K>::DataStorage;
     if constexpr (N <= 32) {
         return Fixed<N,K>::from_raw((static_cast<int64_t>(a.v) << K) / b.v);
     } else {
