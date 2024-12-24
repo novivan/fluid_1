@@ -12,6 +12,8 @@
 #include <variant>
 #include <fstream>
 #include <sstream>
+#include <tuple>
+#include <utility>
 
 #include "headers/fixed.hpp"
 #include "headers/fast_fixed.hpp"
