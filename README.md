@@ -31,7 +31,16 @@
 
 ## Запуск
 
-Для запуска симуляции используйте следующую команду:
+Для запуска симуляции используйте одну из следующих команд(можно и другие но для этого нужно смотреть в CMakeLists.txt или менять его):
 ```sh
 ./modernized_fluid --source="../input.txt" --p-type="DOUBLE" --v-type="FIXED<32,16>" --v-flow-type="FAST_FIXED<33,20>"
+```
+```sh
+./modernized_fluid --source="../input.txt" --p-type="FAST_FIXED<32,16>" --v-type="FAST_FIXED<32,16>" --v-flow-type="FAST_FIXED<32,16>"
+```
+```sh
+./modernized_fluid --source="../input.txt" --p-type="DOUBLE" --v-type="DOUBLE" --v-flow-type="DOUBLE"
+```
+```sh
+./modernized_fluid
 ```

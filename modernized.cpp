@@ -605,9 +605,18 @@ bool validateDataType(const string& typeName) {
 }
 
 string getCommandLineArgument(string_view argName, int argc, char** argv, string_view defaultValue) { 
-    for (int i = 1; i < argc - 1; ++i) {
-        if (argv[i] == argName) {
-            return argv[i + 1];
+    std::string searchArg = std::string(argName);
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string currentArg(argv[i]);
+        if (currentArg.starts_with(searchArg + "=")) {
+            std::string value = currentArg.substr(searchArg.length() + 1);
+            if (value.front() == '"' && value.back() == '"') {
+                value = value.substr(1, value.length() - 2);
+            }
+            replace(value.begin(), value.end(), '<', '(');
+            replace(value.begin(), value.end(), '>', ')');
+            return value;
         }
     }
     return string(defaultValue);
@@ -719,9 +728,9 @@ GridDimension parse_size(const string& size_str) {
 }
 
 int main(int argc, char** argv) {
-    string pressureType = getCommandLineArgument("--p-type", argc, argv, "FAST_FIXED(32, 16)");
-    string velocityType = getCommandLineArgument("--v-type", argc, argv, "FAST_FIXED(32, 16)");
-    string flowType = getCommandLineArgument("--v-flow-type", argc, argv, "FAST_FIXED(32, 16)");
+    string pressureType = getCommandLineArgument("--p-type", argc, argv, "FLOAT");
+    string velocityType = getCommandLineArgument("--v-type", argc, argv, "FLOAT");
+    string flowType = getCommandLineArgument("--v-flow-type", argc, argv, "FLOAT");
     string fieldFilePath = getCommandLineArgument("--field", argc, argv, "../field.txt");
     
     string fieldContent;
